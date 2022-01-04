@@ -2,6 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Book;
+use App\Repository\BookRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -12,32 +15,58 @@ use Symfony\Component\Routing\Annotation\Route;
 class LibraryController extends AbstractController{
 
 
-    #[Route('/library/list', name: 'library_list')]
+    #[Route('/books', name: 'books_get')]
 
-    public function list(Request $request, LoggerInterface $logger){
+    public function list(Request $request, BookRepository $bookRepository){
 
-        $title = $request->get('title', 'Alegria');
-        $logger->info('List action called 2');
+        $books = $bookRepository->findAll();
+        $booksAsArray = [];
+        foreach ($books as $book){
+            $booksAsArray[] = [
+                'id' => $book->getId(),
+                'title' => $book->getTitle(),
+                'image' => $book->getImage()
+            ];
+        }
         $response = new JsonResponse();
         $response->setData([
             'success' => true,
-            'data' => [
-                'id' => 1,
-                'title' => 'Hacia rutas salvajes'
-            ],
-            [
-                'id' => 2,
-                'title' => 'Clean Code'
-            ],
-            [
-                'id' => 3,
-                'title' => $title
-            ]
-
-
+            'data' => $booksAsArray
         ]);
         return $response;
 
+    }
+
+    #[Route('/book/create', name: 'create_book')]
+    public function createBook(Request $request, EntityManagerInterface $em){
+        $book = new Book();
+        $response = new JsonResponse();
+        $title = $request->get('title', null);
+        if (empty($title)){
+            $response->setData([
+                'success' => false,
+                'error' => 'title cannot be empty',
+                'data' => null
+
+            ]);
+            return $response;
+        }
+        $book->setTitle($title);
+        $book->setImage('p');
+        $em->persist($book);
+        $em->flush();
+        $response->setData([
+            'success' => true,
+            'data' => [
+                [
+                    'id' => $book->getId(),
+                    'title' => $book->getTitle()
+                ]            
+            ] 
+        ]);
+        
+        
+        return $response;
     }
 
 
