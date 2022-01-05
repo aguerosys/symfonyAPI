@@ -9,8 +9,9 @@
     use Symfony\Component\HttpFoundation\JsonResponse;
     use Symfony\Component\HttpFoundation\Request;
     use App\Entity\Book;
+use App\Form\Type\BookFormType;
 
-    class BooksController extends AbstractFOSRestController{
+class BooksController extends AbstractFOSRestController{
 
         
         /**
@@ -31,22 +32,14 @@
         public function postActions(EntityManagerInterface $em, Request $request )
         {
             $book = new Book();
-            $response = new JsonResponse();
-            $title = $request->get('title', null);
-            if (empty($title)){
-                $response->setData([
-                    'success' => false,
-                    'error' => 'title cannot be empty',
-                    'data' => null
-
-                ]);
-                return $response;
+            $form = $this->createForm(BookFormType::class, $book);
+            $form->handleRequest($request);
+            if ($form->isSubmitted() && $form->isValid()){
+                $em->persist($book);
+                $em->flush();
+                return $book;
             }
-            $book->setTitle($title);
-            $book->setImage('p');
-            $em->persist($book);
-            $em->flush();
-            return $book;
+            return $form;
         }
     }
 
